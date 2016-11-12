@@ -12,9 +12,6 @@
 # Resize video to 576p and speed up playback to 25 FPS.
 ffmpeg -i "subtitled.mkv" -vf "setpts=N/(25*TB),scale=720:576" -b:v 4100k -f vob -target pal-dvd dvd-video25.mpg
 
-# Extract audio from original MKV with timings from original file.
-ffmpeg -i ${VIDEO} -af "aresample=48000:async=1" -map 0:a audio.flac
-
 # DVD encode audio (ac3) speeding up from 23.976 FPS to 25 FPS (PAL 4% Speed up).
 ffmpeg -i audio.flac -af "asetpts=(23976/25000)*PTS,aresample=48000:async=1:min_comp=0.01:comp_duration=1:max_soft_comp=100000000:min_hard_comp=0.3" -target pal-dvd dvd-audio25.ac3
 
