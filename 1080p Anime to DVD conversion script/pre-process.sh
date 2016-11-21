@@ -25,7 +25,7 @@ mkvmerge -o fixed-subs.mkv ${VIDEO} subrip.ass
 ffmpeg -i "fixed-subs.mkv" -map 0:v -vf "subtitles=fixed-subs.mkv" -map 0:s:1 -pix_fmt yuv420p10le -b:v 6000K subtitled.mkv
 
 # Extract audio from original MKV with timings from original file.
-ffmpeg -i ${VIDEO} -af "aresample=48000:async=1" -map 0:a audio.flac
+ffmpeg -i ${VIDEO} -af "aresample=48000" -map 0:a audio.flac
 
 # Remove subtitle files and large temporary MKV file.
 rm subrip-garbled.ass subrip.ass fixed-subs.mkv
