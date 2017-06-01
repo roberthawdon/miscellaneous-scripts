@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Git add-symlink
+# Written (2016) by KS Chan (https://coderwall.com/mrkschan)
+# Updated (2017) by Robert Hawdon (https://robertianhawdon.me.uk)
+
+# Creates git symlinks on all platforms
+
+src=$1
+dest=$2
+
+if [[ "$dest" == "" ]]
+then
+  bin=`basename $0`
+  echo "Usage: $bin <src> <dest>"
+  echo "<src> and <dest> are relative to pwd."
+  exit 1
+fi
+
+prefix=`git rev-parse --show-prefix`
+hash=`echo -n "$src" | git hash-object -w --stdin`
+
+git update-index --add --cacheinfo 120000 "$hash" "$prefix$dest"
+git checkout -- "$dest"
