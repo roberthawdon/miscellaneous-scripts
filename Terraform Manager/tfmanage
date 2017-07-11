@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+#   ______________  ___
+#  /_  __/ ____/  |/  /___ _____  ____ _____ ____
+#   / / / /_  / /|_/ / __ `/ __ \/ __ `/ __ `/ _ \
+#  / / / __/ / /  / / /_/ / / / / /_/ / /_/ /  __/
+# /_/ /_/   /_/  /_/\__,_/_/ /_/\__,_/\__, /\___/
+#                                    /____/
+#
+#       T E R R A F O R M   M A N A G E R
+#               Universal Edition
+#                +-------------+
+#                 Robert Hawdon
+#
+# Requires curl, unzip, and jq
+
+
+ARG=$1
+TARGETVER=$2
+
+TFMVER="0.1.1"
+
+function detectos() {
+    if [ "$(uname)" == "Darwin" ]; then
+        # Do something under Mac OS X platform
+        KERNEL="darwin"
+        INSTPATH="/usr/local/bin"
+        echo "----- TFManage: OS Detected as MacOS"
+    elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
+        KERNEL="linux"
+        INSTPATH="/usr/bin"
+        echo "----- TFManage: OS Detected as Linux"
+    elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW32_NT" ]; then
+        # Do something under 32 bits Windows NT platform
+        echo "----- TFManage: OS Detected as Windows (32-Bit)"
+        >&2 echo "This script currently does not support Win32"
+        exit 1
+    elif [ "$(expr substr $(uname -s) 1 10)" == "MINGW64_NT" ]; then
+        # Do something under 64 bits Windows NT platform
+        echo "----- TFManage: OS Detected as Windows (64-Bit)"
+        >&2 echo "This script currently does not support Win64"
+        exit 1
+    fi
+}
+
+function currentversion() {
+
+    TFVER=$(terraform --version | head -1 | sed 's/^.*[^0-9]\([0-9]*\.[0-9]*\.[0-9]*\).*$/\1/')
+
+}
+
+function checkversion() {
+
+    # Why, oh why, oh why doesn't the MacOS verion of `sort` NOT support the -V variable?
+    LATEST=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort -s -t- -k 2,2nr |  sort -t. -s -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F[\"] '{print $2}')
+
+
+    if [ ${TFVER} == ${LATEST} ]; then
+	      return 0
+    else
+	      return 1
+    fi
+
+}
+
+function installtf() {
+
+    if [ -z "$1" ]; then
+	      VERSION=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort -s -t- -k 2,2nr |  sort -t. -s -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F[\"] '{print $2}')
+    else
+	      VERSION=$1
+    fi
+
+    terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | egrep "${KERNEL}.*64" | egrep "url" | awk -F[\"] '{print $4}')
+
+    echo "----- TFManage: Downloading Terraform from ${terraform_url}"
+    TMPTF=$(mktemp -d -t 'tfmanage')
+    curl --silent -o $TMPTF/terraform.zip $terraform_url
+
+    echo "----- TFManage: Extracting and moving Terraform to ${INSTPATH}"
+    unzip $TMPTF/terraform.zip -d $TMPTF
+    sudo mv $TMPTF/terraform ${INSTPATH}
+
+    echo "----- TFManage: Cleaning up..."
+    rm -rf $TMPTF
+
+}
+
+function main() {
+
+    if [ -z "${ARG}" ]; then
+	      currentversion
+	      if checkversion; then
+		        echo "Terraform is currently at the latest version (${LATEST})."
+	      else
+		        echo "Your copy of Terraform (${TFVER}) is either outdated, or you're using an unreleased version. Type '$0 upgrade' to upgrade to Terraform v${LATEST}."
+	      fi
+    elif [ ${ARG} == "upgrade" ]; then
+        detectos
+	      currentversion
+	      if checkversion; then
+		        echo "Terraform is currently at the latest version (${LATEST}). There is no need to upgrade."
+	      else
+		        installtf ${LATEST}
+	      fi
+    elif [ ${ARG} == "exact" ]; then
+        detectos
+	      if [ -z "TARGETVER" ]; then
+		        echo "No version specified."
+		        exit 1
+	      else
+		        installtf ${TARGETVER}
+	      fi
+    elif [ ${ARG} == "version" ]; then
+        echo "TFManage version ${TFMVER}."
+        exit 0
+    else
+	      echo "Invalid argument ${ARG}."
+	      exit 1
+    fi
+
+}
+
+main
