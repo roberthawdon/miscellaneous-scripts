@@ -9,7 +9,7 @@
 src=$1
 dest=$2
 
-if [[ "$dest" == "" ]]
+if [ -z "$dest" ]
 then
   bin=$(basename "$0")
   echo "Usage: $bin <src> <dest>"
