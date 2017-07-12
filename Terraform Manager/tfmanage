@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.1.4"
+TFMVER="0.2.0"
 
 function detectos() {
 
@@ -51,6 +51,39 @@ function detectos() {
 		exit 1
 	fi
 
+	# Now lets detect the architecture
+
+	UNAMEM=$(uname -m)
+	case "${UNAMEM}" in
+		x86)   ARCH="386" ;;
+		ia64)  ARCH="amd64" ;;
+		i?86)  ARCH="386" ;;
+		amd64) ARCH="amd64" ;;
+		x86_64) ARCH="amd64" ;;
+		arm*) ARCH="arm" ;;
+		*) ARCH="error" ;;
+	esac
+
+	# Print that we've detected the architecture
+
+	if [[ "${ARCH}" == "386" ]]; then
+		echo "----- TFManage: 32-bit x86 CPU Detected"
+	elif [[ "${ARCH}" == "amd64" ]]; then
+		echo "----- TFManage: 64-bit x86 CPU Detected"
+	elif [[ "${ARCH}" == "arm" ]]; then
+		echo "----- TFManage: ARM CPU Detected"
+	else
+		>&2 echo "----- TFManage: ${ARCH} Not Supported"
+		exit 1
+	fi
+
+	# Some sanity checks needed for impossible situations
+	
+	if [[ "${ARCH}" != "amd64" ]] && [[ "${KERNEL}" == "darwin" ]]; then
+		>&2 echo "----- TFManage: 32 bit Macs are unsupported by Terraform"
+		exit 1
+	fi
+
 }
 
 function currentversion() {
@@ -81,7 +114,7 @@ function installtf() {
 	      VERSION=$1
     fi
 
-    terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | grep -E "${KERNEL}.*64" | grep -E "url" | awk -F[\"] '{print $4}')
+    terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | grep -E "${KERNEL}.${ARCH}" | grep -E "url" | awk -F[\"] '{print $4}')
 
     if [ -z "${terraform_url}" ]; then
 	    >&2 echo "----- TFManage: Unable to locate version ${VERSION}. Aborting."
