@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.2.0"
+TFMVER="0.2.1"
 
 function detectos() {
 
@@ -73,7 +73,7 @@ function detectos() {
 	elif [[ "${ARCH}" == "arm" ]]; then
 		echo "----- TFManage: ARM CPU Detected"
 	else
-		>&2 echo "----- TFManage: ${ARCH} Not Supported"
+		>&2 echo "----- TFManage: ${UNAMEM} Not Supported"
 		exit 1
 	fi
 
