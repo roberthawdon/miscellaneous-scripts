@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.1.3"
+TFMVER="0.1.4"
 
 function detectos() {
 
@@ -82,6 +82,11 @@ function installtf() {
     fi
 
     terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | grep -E "${KERNEL}.*64" | grep -E "url" | awk -F[\"] '{print $4}')
+
+    if [ -z "${terraform_url}" ]; then
+	    >&2 echo "----- TFManage: Unable to locate version ${VERSION}. Aborting."
+	    exit 1
+    fi
 
     echo "----- TFManage: Downloading Terraform from ${terraform_url}"
     TMPTF=$(mktemp -d -t 'tfmanage')
