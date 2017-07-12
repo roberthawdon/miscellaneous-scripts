@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.2.1"
+TFMVER="0.2.2"
 
 function detectos() {
 
@@ -92,11 +92,13 @@ function currentversion() {
 
 }
 
-function checkversion() {
-
+function lateststableversion() {
     # Why, oh why, oh why doesn't the MacOS verion of `sort` NOT support the -V variable?
     LATEST=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort -s -t- -k 2,2nr |  sort -t. -s -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F[\"] '{print $2}')
 
+}
+
+function checkversion() {
 
     if [ "${TFVER}" == "${LATEST}" ]; then
 	      return 0
@@ -109,9 +111,9 @@ function checkversion() {
 function installtf() {
 
     if [ -z "$1" ]; then
-	      VERSION=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort -s -t- -k 2,2nr |  sort -t. -s -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F[\"] '{print $2}')
+	      VERSION="${LATEST}"
     else
-	      VERSION=$1
+	      VERSION="$1"
     fi
 
     terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | grep -E "${KERNEL}.${ARCH}" | grep -E "url" | awk -F[\"] '{print $4}')
@@ -137,7 +139,8 @@ function installtf() {
 function main() {
 
     if [ -z "${ARG}" ]; then
-	      currentversion
+              currentversion
+	      lateststableversion
 	      if checkversion; then
 		        echo "Terraform is currently at the latest version (${LATEST})."
 	      else
@@ -146,6 +149,7 @@ function main() {
     elif [ "${ARG}" == "upgrade" ]; then
         detectos
 	      currentversion
+	      lateststableversion
 	      if checkversion; then
 		        echo "Terraform is currently at the latest version (${LATEST}). There is no need to upgrade."
 	      else
