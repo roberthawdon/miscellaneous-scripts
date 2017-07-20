@@ -17,7 +17,41 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.2.2"
+TFMVER="0.3.0"
+
+function checkterraform() {
+    echo "----- TFManage: Checking Terraform is installed."
+    if command -v terraform >/dev/null 2>&1 ; then
+        echo "----- TFManage: terraform found"
+    else
+        >&2 echo "Terraform is not installed. Run 'tfmanage exact latest' to install terraform."
+        exit 1
+    fi
+}
+
+function checkdependencies() {
+    echo "----- TFManage: Checking dependencies"
+    if command -v curl >/dev/null 2>&1 ; then
+        echo "----- TFManage: curl found"
+    else
+        >&2 echo "curl not found on your system. Aborting."
+        exit 1
+    fi
+
+    if command -v unzip >/dev/null 2>&1 ; then
+        echo "----- TFManage: unzip found"
+    else
+        >&2 echo "unzip not found on your system. Aborting."
+        exit 1
+    fi
+
+    if command -v jq >/dev/null 2>&1 ; then
+        echo "----- TFManage: jq found"
+    else
+        >&2 echo "jq not found on your system. Aborting."
+        exit 1
+    fi
+}
 
 function detectos() {
 
@@ -78,7 +112,7 @@ function detectos() {
 	fi
 
 	# Some sanity checks needed for impossible situations
-	
+
 	if [[ "${ARCH}" != "amd64" ]] && [[ "${KERNEL}" == "darwin" ]]; then
 		>&2 echo "----- TFManage: 32 bit Macs are unsupported by Terraform"
 		exit 1
@@ -124,7 +158,12 @@ function installtf() {
     fi
 
     echo "----- TFManage: Downloading Terraform from ${terraform_url}"
-    TMPTF=$(mktemp -d -t 'tfmanage')
+    if [ "${KERNEL}" == "Linux" ]; then
+        TMPTF=$(mktemp -d -t 'tfmanage.XXXXXXXX')
+    else
+        TMPTF=$(mktemp -d -t 'tfmanage')
+    fi
+
     curl --silent -o "${TMPTF}/terraform.zip" "${terraform_url}"
 
     echo "----- TFManage: Extracting and moving Terraform to ${INSTPATH}"
@@ -139,7 +178,9 @@ function installtf() {
 function main() {
 
     if [ -z "${ARG}" ]; then
-              currentversion
+        checkdependencies
+        checkterraform
+        currentversion
 	      lateststableversion
 	      if checkversion; then
 		        echo "Terraform is currently at the latest version (${LATEST})."
@@ -147,6 +188,8 @@ function main() {
 		        echo "Your copy of Terraform (${TFVER}) is either outdated, or you're using an unreleased version. Type '$0 upgrade' to upgrade to Terraform v${LATEST}."
 	      fi
     elif [ "${ARG}" == "upgrade" ]; then
+        checkdependencies
+        checkterraform
         detectos
 	      currentversion
 	      lateststableversion
@@ -156,10 +199,14 @@ function main() {
 		        installtf "${LATEST}"
 	      fi
     elif [ "${ARG}" == "exact" ]; then
+        checkdependencies
         detectos
 	      if [ -z "${TARGETVER}" ]; then
 		        echo "No version specified."
 		        exit 1
+        elif [ "${TARGETVER}" == 'latest' ]; then
+            lateststableversion
+            installtf "${LATEST}"
 	      else
 		        installtf "${TARGETVER}"
 	      fi
