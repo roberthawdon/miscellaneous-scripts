@@ -55,68 +55,68 @@ function checkdependencies() {
 
 function detectos() {
 
-	if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-		KERNEL="linux"
-		INSTPATH="/usr/bin"
-		echo "----- TFManage: OS Detected as Linux"
-	elif [[ "${OSTYPE}" == "darwin"* ]]; then
-		KERNEL="darwin"
-		INSTPATH="/usr/local/bin"
-		echo "----- TFManage: OS Detected as MacOS"
-	elif [[ "${OSTYPE}" == "cygwin" ]]; then
-		echo "----- TFManage: OS Detected as Windows (running Cygwin)"
-		>&2 echo "This script currently does not support Cygwin"
-		exit 1
-	elif [[ "${OSTYPE}" == "msys" ]]; then
-		echo "----- TFManage: OS Detected as Windows (Git Bash)"
-		>&2 echo "This script currently does not support Windows"
-		exit 1
-	elif [[ "${OSTYPE}" == "win32" ]]; then
-		echo "----- TFManage: OS Detected as Windows"
-		>&2 echo "This script currently does not support Windows"
-		exit 1
-	elif [[ "${OSTYPE}" == "freebsd"* ]]; then
-		echo "----- TFManage: OS Detected as FreeBSD"
-		KERNEL="freebsd"
-		INSTPATH="/usr/local/bin"
-	else
-		echo "----- TFManage: OS Not Detected"
-		>&2 echo "The script was unable to detect your OS ${OSTYPE}"
-		exit 1
-	fi
+  if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+    KERNEL="linux"
+    INSTPATH="/usr/bin"
+    echo "----- TFManage: OS Detected as Linux"
+  elif [[ "${OSTYPE}" == "darwin"* ]]; then
+    KERNEL="darwin"
+    INSTPATH="/usr/local/bin"
+    echo "----- TFManage: OS Detected as MacOS"
+  elif [[ "${OSTYPE}" == "cygwin" ]]; then
+    echo "----- TFManage: OS Detected as Windows (running Cygwin)"
+    >&2 echo "This script currently does not support Cygwin"
+    exit 1
+  elif [[ "${OSTYPE}" == "msys" ]]; then
+    echo "----- TFManage: OS Detected as Windows (Git Bash)"
+    >&2 echo "This script currently does not support Windows"
+    exit 1
+  elif [[ "${OSTYPE}" == "win32" ]]; then
+    echo "----- TFManage: OS Detected as Windows"
+    >&2 echo "This script currently does not support Windows"
+    exit 1
+  elif [[ "${OSTYPE}" == "freebsd"* ]]; then
+    echo "----- TFManage: OS Detected as FreeBSD"
+    KERNEL="freebsd"
+    INSTPATH="/usr/local/bin"
+  else
+    echo "----- TFManage: OS Not Detected"
+    >&2 echo "The script was unable to detect your OS ${OSTYPE}"
+    exit 1
+  fi
 
-	# Now lets detect the architecture
+  # Now lets detect the architecture
 
-	UNAMEM=$(uname -m)
-	case "${UNAMEM}" in
-		x86)   ARCH="386" ;;
-		ia64)  ARCH="amd64" ;;
-		i?86)  ARCH="386" ;;
-		amd64) ARCH="amd64" ;;
-		x86_64) ARCH="amd64" ;;
-		arm*) ARCH="arm" ;;
-		*) ARCH="error" ;;
-	esac
+  UNAMEM=$(uname -m)
+  case "${UNAMEM}" in
+    x86)   ARCH="386" ;;
+    ia64)  ARCH="amd64" ;;
+    i?86)  ARCH="386" ;;
+    amd64) ARCH="amd64" ;;
+    x86_64) ARCH="amd64" ;;
+    arm*) ARCH="arm" ;;
+    *) ARCH="error" ;;
+  esac
 
-	# Print that we've detected the architecture
+  # Print that we've detected the architecture
 
-	if [[ "${ARCH}" == "386" ]]; then
-		echo "----- TFManage: 32-bit x86 CPU Detected"
-	elif [[ "${ARCH}" == "amd64" ]]; then
-		echo "----- TFManage: 64-bit x86 CPU Detected"
-	elif [[ "${ARCH}" == "arm" ]]; then
-		echo "----- TFManage: ARM CPU Detected"
-	else
-		>&2 echo "----- TFManage: ${UNAMEM} Not Supported"
-		exit 1
-	fi
+  if [[ "${ARCH}" == "386" ]]; then
+    echo "----- TFManage: 32-bit x86 CPU Detected"
+  elif [[ "${ARCH}" == "amd64" ]]; then
+    echo "----- TFManage: 64-bit x86 CPU Detected"
+  elif [[ "${ARCH}" == "arm" ]]; then
+    echo "----- TFManage: ARM CPU Detected"
+  else
+    >&2 echo "----- TFManage: ${UNAMEM} Not Supported"
+    exit 1
+  fi
 
-	# Some sanity checks needed for impossible situations
+  # Some sanity checks needed for impossible situations
 
-	if [[ "${ARCH}" != "amd64" ]] && [[ "${KERNEL}" == "darwin" ]]; then
-		>&2 echo "----- TFManage: 32 bit Macs are unsupported by Terraform"
-		exit 1
-	fi
+  if [[ "${ARCH}" != "amd64" ]] && [[ "${KERNEL}" == "darwin" ]]; then
+    >&2 echo "----- TFManage: 32 bit Macs are unsupported by Terraform"
+    exit 1
+  fi
 
 }
 
@@ -135,9 +135,9 @@ function lateststableversion() {
 function checkversion() {
 
     if [ "${TFVER}" == "${LATEST}" ]; then
-	      return 0
+        return 0
     else
-	      return 1
+        return 1
     fi
 
 }
@@ -145,16 +145,16 @@ function checkversion() {
 function installtf() {
 
     if [ -z "$1" ]; then
-	      VERSION="${LATEST}"
+        VERSION="${LATEST}"
     else
-	      VERSION="$1"
+        VERSION="$1"
     fi
 
     terraform_url=$(curl --silent https://releases.hashicorp.com/index.json | jq ".[] | select(.name==\"terraform\") | .versions[] | select(.version==\"${VERSION}\")" | grep -E "${KERNEL}.${ARCH}" | grep -E "url" | awk -F[\"] '{print $4}')
 
     if [ -z "${terraform_url}" ]; then
-	    >&2 echo "----- TFManage: Unable to locate version ${VERSION}. Aborting."
-	    exit 1
+      >&2 echo "----- TFManage: Unable to locate version ${VERSION}. Aborting."
+      exit 1
     fi
 
     echo "----- TFManage: Downloading Terraform from ${terraform_url}"
@@ -181,41 +181,41 @@ function main() {
         checkdependencies
         checkterraform
         currentversion
-	      lateststableversion
-	      if checkversion; then
-		        echo "Terraform is currently at the latest version (${LATEST})."
-	      else
-		        echo "Your copy of Terraform (${TFVER}) is either outdated, or you're using an unreleased version. Type '$0 upgrade' to upgrade to Terraform v${LATEST}."
-	      fi
+        lateststableversion
+        if checkversion; then
+            echo "Terraform is currently at the latest version (${LATEST})."
+        else
+            echo "Your copy of Terraform (${TFVER}) is either outdated, or you're using an unreleased version. Type '$0 upgrade' to upgrade to Terraform v${LATEST}."
+        fi
     elif [ "${ARG}" == "upgrade" ]; then
         checkdependencies
         checkterraform
         detectos
-	      currentversion
-	      lateststableversion
-	      if checkversion; then
-		        echo "Terraform is currently at the latest version (${LATEST}). There is no need to upgrade."
-	      else
-		        installtf "${LATEST}"
-	      fi
+        currentversion
+        lateststableversion
+        if checkversion; then
+            echo "Terraform is currently at the latest version (${LATEST}). There is no need to upgrade."
+        else
+            installtf "${LATEST}"
+        fi
     elif [ "${ARG}" == "exact" ]; then
         checkdependencies
         detectos
-	      if [ -z "${TARGETVER}" ]; then
-		        echo "No version specified."
-		        exit 1
+        if [ -z "${TARGETVER}" ]; then
+            echo "No version specified."
+            exit 1
         elif [ "${TARGETVER}" == 'latest' ]; then
             lateststableversion
             installtf "${LATEST}"
-	      else
-		        installtf "${TARGETVER}"
-	      fi
+        else
+            installtf "${TARGETVER}"
+        fi
     elif [ "${ARG}" == "version" ]; then
         echo "TFManage version ${TFMVER}."
         exit 0
     else
-	      echo "Invalid argument ${ARG}."
-	      exit 1
+        echo "Invalid argument ${ARG}."
+        exit 1
     fi
 
 }
