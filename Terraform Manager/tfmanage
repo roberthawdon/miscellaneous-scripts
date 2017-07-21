@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.3.0"
+TFMVER="0.3.1"
 
 function checkterraform() {
     echo "----- TFManage: Checking Terraform is installed."
@@ -158,7 +158,7 @@ function installtf() {
     fi
 
     echo "----- TFManage: Downloading Terraform from ${terraform_url}"
-    if [ "${KERNEL}" == "Linux" ]; then
+    if [ "${KERNEL}" == "linux" ]; then
         TMPTF=$(mktemp -d -t 'tfmanage.XXXXXXXX')
     else
         TMPTF=$(mktemp -d -t 'tfmanage')
