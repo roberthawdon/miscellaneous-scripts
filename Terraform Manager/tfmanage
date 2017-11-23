@@ -17,7 +17,29 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.3.1"
+TFMVER="0.4.1"
+
+function showhelp(){
+    echo "Usage: $0 <command> [arg]
+
+Version ${TFMVER}
+
+Terraform Manager is a script that manages the installed version of Terraform
+on your system. It is designed to work on the following systems: Linux, MacOS,
+and FreeBSD. OpenBSD and Solaris support to come later.
+
+Common commands:
+    exact [latest], [version]      Installs the latest version of Terraform
+    upgrade                        Upgrades Terraform to the latest version
+    version                        Shows the version of this script
+    help                           Displays this help screen
+
+Running the script without any command will perform a dependency and version
+check and will advise if you need to upgrade.
+
+The following applications are dependencies: curl, unzip, and jq
+"
+}
 
 function checkterraform() {
     echo "----- TFManage: Checking Terraform is installed."
@@ -212,6 +234,9 @@ function main() {
         fi
     elif [ "${ARG}" == "version" ]; then
         echo "TFManage version ${TFMVER}."
+        exit 0
+    elif [ "${ARG}" == "help" ]; then
+        showhelp
         exit 0
     else
         echo "Invalid argument ${ARG}."
