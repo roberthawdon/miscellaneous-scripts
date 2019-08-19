@@ -75,23 +75,25 @@ def getGeoLite(maxmindurl, maxmindfile, tmpdir):
 
 def processCSV(csvFile, field):
     counter = 0
-    outputDict = []
-    ipDict = []
-    cnDict = []
-    ciDict = []
+    outputDict = {}
+    ipList = []
+    cnList = []
+    ciList = []
     inputCSV = pd.read_csv(csvFile).astype(object)
-    ipList = inputCSV[field].tolist()
-    uniqueIP = set(ipList)
+    ipAddrs = inputCSV[field].values.flatten()
+    uniqueIP = set(ipAddrs)
     totalIPs = len(uniqueIP)
     for ip in uniqueIP:
         counter += 1
         indexID = geoDataByIP(testData, ip)
         sys.stdout.write("Processing %d of %d unique IP addresses.   \r" % (counter,totalIPs))
-        ipDict.append(ip)
-        cnDict.append(geoDetail(testData, indexID, 'country_name'))
-        ciDict.append(geoDetail(testData, indexID, 'country_iso_code'))
+        ipList.append(ip)
+        cnList.append(geoDetail(testData, indexID, 'country_name'))
+        ciList.append(geoDetail(testData, indexID, 'country_iso_code'))
     print('Processing unique IP addresses complete.                          ')
-    outputDict = {args.field: ipDict, 'MaxMind Country Name': cnDict, 'MaxMind Country ISO Code': ciDict}
+    outputDict[args.field[0]] = ipList
+    outputDict["MaxMind Country Name"] = cnList
+    outputDict["MaxMind Country ISO Code"] = ciList
 
     return outputDict
 
