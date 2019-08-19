@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 import pandas as pd
 import zipfile
@@ -21,9 +21,9 @@ def genZone(mmdir, isocountry):
 
     outputname = isocountry.lower() + ".zone"
 
-    a = pd.read_csv(mmdir + "/GeoLite2-Country-Blocks-IPv4.csv").astype(basestring)
+    a = pd.read_csv(mmdir + "/GeoLite2-Country-Blocks-IPv4.csv").astype(object)
 
-    b = pd.read_csv(mmdir + "/GeoLite2-Country-Locations-en.csv").astype(basestring)
+    b = pd.read_csv(mmdir + "/GeoLite2-Country-Locations-en.csv").astype(object)
 
     merged= a.merge(b, on='geoname_id',how='left')
 
