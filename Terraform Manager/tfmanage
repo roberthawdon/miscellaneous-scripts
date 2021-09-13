@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.4.1"
+TFMVER="0.5.0"
 
 function showhelp(){
     echo "Usage: $0 <command> [arg]
@@ -149,8 +149,8 @@ function currentversion() {
 }
 
 function lateststableversion() {
-    # Why, oh why, oh why doesn't the MacOS verion of `sort` NOT support the -V variable?
-    LATEST=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort -s -t- -k 2,2nr |  sort -t. -s -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4nr | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F[\"] '{print $2}')
+    # MacOS seems to support the --version-sort in sort now.
+    LATEST=$(curl --silent https://releases.hashicorp.com/index.json | jq '.[] | select(.name=="terraform") | .versions[].version' | sort --version-sort -r | grep -v rc | grep -v beta | grep -v alpha | head -1 | awk -F'[\"]' '{print $2}')
 
 }
 
