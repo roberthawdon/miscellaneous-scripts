@@ -17,7 +17,7 @@
 ARG=$1
 TARGETVER=$2
 
-TFMVER="0.5.0"
+TFMVER="0.5.1"
 
 function showhelp(){
     echo "Usage: $0 <command> [arg]
@@ -79,7 +79,7 @@ function detectos() {
 
   if [[ "${OSTYPE}" == "linux-gnu" ]]; then
     KERNEL="linux"
-    INSTPATH="/usr/bin"
+    INSTPATH="/usr/local/bin"
     echo "----- TFManage: OS Detected as Linux"
   elif [[ "${OSTYPE}" == "darwin"* ]]; then
     KERNEL="darwin"
@@ -135,7 +135,7 @@ function detectos() {
 
   # Some sanity checks needed for impossible situations
 
-  if [[ "${ARCH}" != "amd64" ]] && [[ "${KERNEL}" == "darwin" ]]; then
+  if [[ "${ARCH}" == "386" ]] && [[ "${KERNEL}" == "darwin" ]]; then
     >&2 echo "----- TFManage: 32 bit Macs are unsupported by Terraform"
     exit 1
   fi
@@ -190,6 +190,7 @@ function installtf() {
 
     echo "----- TFManage: Extracting and moving Terraform to ${INSTPATH}"
     unzip "${TMPTF}/terraform.zip" -d "${TMPTF}"
+    sudo mkdir -p "${INSTPATH}"
     sudo mv "${TMPTF}/terraform" "${INSTPATH}"
 
     echo "----- TFManage: Cleaning up..."
