@@ -7,28 +7,32 @@
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 
-VERSION='0.2.1'
+VERSION='0.2.2'
 
-printf "Certificate chain checker V%s\n" "${VERSION}"
+printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
 printf "Checking for OpenSSL...\r"
 if command -v openssl >/dev/null 2>&1 ; then
         opensslversion=$(openssl version)
-        printf "Checking for OpenSSL... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${opensslversion}"
+        printf "Checking for OpenSSL... %bPASS%b (%s)\n\n" "${GREEN}" "${NC}" "${opensslversion}"
 else
-        printf "Checking for OpenSSL... %bFAIL%b" "${RED}" "${NC}"
+        printf "Checking for OpenSSL... %bFAIL%b\n\n" "${RED}" "${NC}"
         exit 1
 fi
 
-while getopts ":b:c:i:k:r:o:" options; do
+while getopts ":b:c:di:k:r:o:" options; do
         case "${options}" in
                 b)
                         bundle=${OPTARG}
                         ;;
                 c)
                         cert=$(cat "${OPTARG}")
+                        ;;
+                d)
+                        checkDates=true
                         ;;
                 i)
                         intermediate=$(cat "${OPTARG}")
@@ -49,6 +53,22 @@ while getopts ":b:c:i:k:r:o:" options; do
 done
 
 shift "$(( OPTIND - 1))"
+
+if [ "${checkDates}" ]; then
+        if [[ ${OSTYPE} == "darwin"* ]]; then
+                printf "MacOS detected, checking for gdate...\r"
+                if command -v gdate >/dev/null 2>&1 ; then
+                        DATE=$(command -v gdate)
+                        printf "MacOS detected, checking for gdate... %bPASS%b\n" "${GREEN}" "${NC}"
+                else
+                        printf "MacOS detected, checking for gdate... %bFAIL%b\n" "${RED}" "${NC}"
+                        exit 1
+                fi
+        else
+                DATE=$(command -v date)
+        fi
+        currentEpoch=$(${DATE} -u +"%s")
+fi
 
 if [ -n "$bundle" ]; then
         if [[ ${OSTYPE} == "darwin"* ]]; then
@@ -83,9 +103,9 @@ if [ -n "$bundle" ]; then
 fi
 
 if [ -n "$bundle" ] && [ -n "$key" ]; then
-        printf "Using bundle and key\n"
+        printf "\nUsing bundle and key\n"
 elif [ -n "$cert" ] && [ -n "$intermediate" ] && [ -n "$key" ]; then
-        printf "Using separate certs\n"
+        printf "\nUsing separate certs\n"
 else
         echo 'Missing required arguments (-c, -i, or -b), and/or -k.' >&2
         exit 1
@@ -99,7 +119,31 @@ if [ -n "$output" ] ; then
         combine=true
 fi
 
-printf "Checking Cert's Intermediate...\r"
+if [ "${checkDates}" ]; then
+        printf "\nChecking Cert's dates...\n"
+        certStartDate=$(printf "%s" "${cert}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
+        certEndDate=$(printf "%s" "${cert}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+        
+        certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
+        certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
+
+        if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+                printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+        else
+                printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+        fi
+
+        if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+                printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+        else
+                printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                exit 1
+        fi
+
+fi
+
+
+printf "\nChecking Cert's Intermediate...\r"
 certIssuerHash=$(printf "%s" "${cert}" | openssl x509 -issuer_hash -noout)
 intermediateHash=$(printf "%s" "${intermediate}" | openssl x509 -hash -noout)
 
@@ -110,8 +154,31 @@ else
         exit 1
 fi
 
+if [ "${checkDates}" ]; then
+        printf "Checking Intermediate's dates...\n"
+        certStartDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
+        certEndDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+        
+        certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
+        certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
+
+        if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+                printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+        else
+                printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+        fi
+
+        if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+                printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+        else
+                printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                exit 1
+        fi
+
+fi
+
 if [ "${checkroot}" ] ; then
-        printf "Checking Intermediate's Root...\r"
+        printf "\nChecking Intermediate's Root...\r"
         intermediateIssuerHash=$(printf "%s" "${intermediate}" | openssl x509 -issuer_hash -noout)
         rootHash=$(printf "%s" "${root}" | openssl x509 -hash -noout)
         if [ "${intermediateIssuerHash}" == "${rootHash}" ] ; then
@@ -121,9 +188,31 @@ if [ "${checkroot}" ] ; then
                 exit 1
         fi
 
+        if [ "${checkDates}" ]; then
+                printf "Checking Intermediate's Root's dates...\n"
+                certStartDate=$(printf "%s" "${root}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
+                certEndDate=$(printf "%s" "${root}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+                
+                certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
+                certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
+        
+                if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+                        printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                else
+                        printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+                fi
+        
+                if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+                        printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                else
+                        printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                        exit 1
+                fi
+        
+        fi
 fi
 
-printf "Checking Cert matches Key...\r"
+printf "\nChecking Cert matches Key...\r"
 
 certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus)
 keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus)
@@ -136,7 +225,7 @@ else
 fi
 
 if [ "${combine}" ] ; then
-        printf "All checks passed, writing combined file...\n"
+        printf "\nAll checks passed, writing combined file...\n"
         
         if [ "${checkroot}" ]; then
                 cat "${cert}" "${intermediate}" "${root}" > "${output}"
@@ -145,8 +234,8 @@ if [ "${combine}" ] ; then
         fi
 
 else
-        printf "All checks passed, no output specified. \n"
+        printf "\nAll checks passed, no output specified. \n"
 
 fi
 
-printf "Complete\n"
+printf "\nComplete\n"
