@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 
-VERSION='0.2.2'
+VERSION='0.2.3'
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -123,17 +123,17 @@ if [ "${checkDates}" ]; then
         printf "\nChecking Cert's dates...\n"
         certStartDate=$(printf "%s" "${cert}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
         certEndDate=$(printf "%s" "${cert}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
-        
+
         certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
-        if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+        if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
                 printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
         fi
 
-        if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+        if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
                 printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
@@ -158,17 +158,17 @@ if [ "${checkDates}" ]; then
         printf "Checking Intermediate's dates...\n"
         certStartDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
         certEndDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
-        
+
         certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
-        if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+        if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
                 printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
         fi
 
-        if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+        if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
                 printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
@@ -192,23 +192,23 @@ if [ "${checkroot}" ] ; then
                 printf "Checking Intermediate's Root's dates...\n"
                 certStartDate=$(printf "%s" "${root}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
                 certEndDate=$(printf "%s" "${root}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
-                
+
                 certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
                 certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
-        
-                if [ ${certStartEpoch} -lt ${currentEpoch} ] ; then
+
+                if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
                         printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
                 else
                         printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
                 fi
-        
-                if [ ${certEndEpoch} -gt ${currentEpoch} ] ; then
+
+                if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
                         printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
                 else
                         printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
                         exit 1
                 fi
-        
+
         fi
 fi
 
@@ -226,11 +226,11 @@ fi
 
 if [ "${combine}" ] ; then
         printf "\nAll checks passed, writing combined file...\n"
-        
+
         if [ "${checkroot}" ]; then
-                cat "${cert}" "${intermediate}" "${root}" > "${output}"
+                printf "%s\n%s\n%s" "${cert}" "${intermediate}" "${root}" > "${output}"
         else
-                cat "${cert}" "${intermediate}" > "${output}"
+                printf "%s\n%s" "${cert}" "${intermediate}" > "${output}"
         fi
 
 else
