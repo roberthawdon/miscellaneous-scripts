@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 
-VERSION='0.2.4'
+VERSION='0.2.5'
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -29,19 +29,19 @@ while getopts ":b:c:di:k:r:o:" options; do
                         bundle=${OPTARG}
                         ;;
                 c)
-                        cert=$(cat "${OPTARG}")
+                        cert=$(cat "${OPTARG}" 2> /dev/null)
                         ;;
                 d)
                         checkDates=true
                         ;;
                 i)
-                        intermediate=$(cat "${OPTARG}")
+                        intermediate=$(cat "${OPTARG}" 2> /dev/null)
                         ;;
                 k)
-                        key=$(cat "${OPTARG}")
+                        key=$(cat "${OPTARG}" 2> /dev/null)
                         ;;
                 r)
-                        root=$(cat "${OPTARG}")
+                        root=$(cat "${OPTARG}" 2> /dev/null)
                         ;;
                 o)
                         output=${OPTARG}
