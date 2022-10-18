@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 
-VERSION='0.2.3'
+VERSION='0.2.4'
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -20,7 +20,7 @@ if command -v openssl >/dev/null 2>&1 ; then
         printf "Checking for OpenSSL... %bPASS%b (%s)\n\n" "${GREEN}" "${NC}" "${opensslversion}"
 else
         printf "Checking for OpenSSL... %bFAIL%b\n\n" "${RED}" "${NC}"
-        exit 1
+        exit 255
 fi
 
 while getopts ":b:c:di:k:r:o:" options; do
@@ -62,7 +62,7 @@ if [ "${checkDates}" ]; then
                         printf "MacOS detected, checking for gdate... %bPASS%b\n" "${GREEN}" "${NC}"
                 else
                         printf "MacOS detected, checking for gdate... %bFAIL%b\n" "${RED}" "${NC}"
-                        exit 1
+                        exit 254
                 fi
         else
                 DATE=$(command -v date)
@@ -78,7 +78,7 @@ if [ -n "$bundle" ]; then
                         printf "MacOS detected, checking for gsed... %bPASS%b\n" "${GREEN}" "${NC}"
                 else
                         printf "MacOS detected, checking for gsed... %bFAIL%b\n" "${RED}" "${NC}"
-                        exit 1
+                        exit 254
                 fi
         else
                 SED=$(command -v sed)
@@ -108,7 +108,7 @@ elif [ -n "$cert" ] && [ -n "$intermediate" ] && [ -n "$key" ]; then
         printf "\nUsing separate certs\n"
 else
         echo 'Missing required arguments (-c, -i, or -b), and/or -k.' >&2
-        exit 1
+        exit 250
 fi
 
 if [ -n "$root" ] ; then
@@ -151,7 +151,7 @@ if [ "${certIssuerHash}" == "${intermediateHash}" ] ; then
         printf "Checking Cert's Intermediate... %bPASS%b\n" "${GREEN}" "${NC}"
 else
         printf "Checking Cert's Intermediate... %bFAIL%b\n" "${RED}" "${NC}"
-        exit 1
+        exit 2
 fi
 
 if [ "${checkDates}" ]; then
@@ -185,7 +185,7 @@ if [ "${checkroot}" ] ; then
                 printf "Checking Intermediate's Root... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "Checking Intermediate's Root... %bFAIL%b\n" "${RED}" "${NC}"
-                exit 1
+                exit 3
         fi
 
         if [ "${checkDates}" ]; then
@@ -221,7 +221,7 @@ if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
         printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
 else
         printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
-        exit 1
+        exit 4
 fi
 
 if [ "${combine}" ] ; then
