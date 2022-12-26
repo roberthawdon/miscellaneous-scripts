@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 
-VERSION='0.2.5'
+VERSION='0.2.6'
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -128,15 +128,15 @@ if [ "${checkDates}" ]; then
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
         if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
-                printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                printf "Start Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certStartDate}"
         else
-                printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+                printf "Start Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certStartDate}"
         fi
 
         if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
-                printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
-                printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
                 exit 1
         fi
 
@@ -163,15 +163,15 @@ if [ "${checkDates}" ]; then
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
         if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
-                printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                printf "Start Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certStartDate}"
         else
-                printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+                printf "Start Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certStartDate}"
         fi
 
         if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
-                printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
-                printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
                 exit 1
         fi
 
@@ -197,15 +197,15 @@ if [ "${checkroot}" ] ; then
                 certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
                 if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
-                        printf "Start Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                        printf "Start Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certStartDate}"
                 else
-                        printf "Start Date... %bWARN%b\n" "${YELLOW}" "${NC}"
+                        printf "Start Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certStartDate}"
                 fi
 
                 if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
-                        printf "End Date... %bPASS%b\n" "${GREEN}" "${NC}"
+                        printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
                 else
-                        printf "End Date... %bFAIL%b\n" "${RED}" "${NC}"
+                        printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
                         exit 1
                 fi
 
