@@ -11,10 +11,12 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 DAYSEC='86400'
 
-VERSION='0.2.8'
+VERSION='0.2.9'
 
 MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
 MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
+ENDWARN='30' # Flag warning if cert will expire within 30 days
+ENDWARNSEC=$(awk "BEGIN{print ${ENDWARN}*${DAYSEC}}")
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -137,13 +139,17 @@ if [ "${checkDates}" ]; then
         certAge=$(awk "BEGIN{print ${certEndEpoch}-${certStartEpoch}}")
         certAgeDays=$(awk "BEGIN{print ${certAge}/${DAYSEC}}")
 
+        certEndWarn=$(awk "BEGIN{print ${currentEpoch}+${ENDWARNSEC}}")
+
         if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
                 printf "Start Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certStartDate}"
         else
                 printf "Start Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certStartDate}"
         fi
 
-        if [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
+        if [ "${certEndWarn}" -gt "${certEndEpoch}" ] ; then
+                printf "End Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certEndDate}"
+        elif [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
                 printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
                 printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
