@@ -9,8 +9,12 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
+DAYSEC='86400'
 
-VERSION='0.2.6'
+VERSION='0.2.8'
+
+MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
+MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
 
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
@@ -23,7 +27,7 @@ else
         exit 255
 fi
 
-while getopts ":b:c:di:k:r:o:" options; do
+while getopts ":b:c:di:k:r:to:" options; do
         case "${options}" in
                 b)
                         bundle=${OPTARG}
@@ -45,6 +49,9 @@ while getopts ":b:c:di:k:r:o:" options; do
                         ;;
                 o)
                         output=${OPTARG}
+                        ;;
+                t)
+                        printThumbprint=true
                         ;;
                 *)
                         # usage
@@ -127,6 +134,9 @@ if [ "${checkDates}" ]; then
         certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
 
+        certAge=$(awk "BEGIN{print ${certEndEpoch}-${certStartEpoch}}")
+        certAgeDays=$(awk "BEGIN{print ${certAge}/${DAYSEC}}")
+
         if [ "${certStartEpoch}" -lt "${currentEpoch}" ] ; then
                 printf "Start Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certStartDate}"
         else
@@ -137,6 +147,13 @@ if [ "${checkDates}" ]; then
                 printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
                 printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
+                exit 1
+        fi
+
+        if [ "${certAge}" -lt "${MAXAGESEC}" ] ; then
+                printf "Certificate Maximum Age... %bPASS%b (%s day(s))\n" "${GREEN}" "${NC}" "${certAgeDays}"
+        else
+                printf "Certificate Maximum Age... %bFAIL%b (%s day(s))\n" "${RED}" "${NC}" "${certAgeDays}"
                 exit 1
         fi
 
@@ -237,5 +254,11 @@ else
         printf "\nAll checks passed, no output specified. \n"
 
 fi
+
+if [ "${printThumbprint}" ] ; then
+        thumbprint=$(printf "%s" "${cert}" | openssl x509 -outform DER | sha1sum | awk '{ print $1 }')
+        printf "\nCertificate Thumbprint: %s\n" "${thumbprint}"
+fi
+
 
 printf "\nComplete\n"
