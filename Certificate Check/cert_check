@@ -11,13 +11,14 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 DAYSEC='86400'
 
-VERSION='0.2.9'
+VERSION='0.2.10'
 
 MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
 MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
 ENDWARN='30' # Flag warning if cert will expire within 30 days
 ENDWARNSEC=$(awk "BEGIN{print ${ENDWARN}*${DAYSEC}}")
 
+EXITCODE=0
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
 printf "Checking for OpenSSL...\r"
@@ -29,7 +30,7 @@ else
         exit 255
 fi
 
-while getopts ":b:c:di:k:r:to:" options; do
+while getopts ":b:c:di:k:r:to:x" options; do
         case "${options}" in
                 b)
                         bundle=${OPTARG}
@@ -54,6 +55,9 @@ while getopts ":b:c:di:k:r:to:" options; do
                         ;;
                 t)
                         printThumbprint=true
+                        ;;
+                x)
+                        exitOnFailure=true
                         ;;
                 *)
                         # usage
@@ -153,14 +157,20 @@ if [ "${checkDates}" ]; then
                 printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
                 printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
-                exit 1
+                EXITCODE=1
+                if [ "${exitOnFailure}" ] ; then
+                        exit "${EXITCODE}"
+                fi
         fi
 
         if [ "${certAge}" -lt "${MAXAGESEC}" ] ; then
                 printf "Certificate Maximum Age... %bPASS%b (%s day(s))\n" "${GREEN}" "${NC}" "${certAgeDays}"
         else
                 printf "Certificate Maximum Age... %bFAIL%b (%s day(s))\n" "${RED}" "${NC}" "${certAgeDays}"
-                exit 1
+                EXITCODE=1
+                if [ "${exitOnFailure}" ] ; then
+                        exit "${EXITCODE}"
+                fi
         fi
 
 fi
@@ -174,7 +184,10 @@ if [ "${certIssuerHash}" == "${intermediateHash}" ] ; then
         printf "Checking Cert's Intermediate... %bPASS%b\n" "${GREEN}" "${NC}"
 else
         printf "Checking Cert's Intermediate... %bFAIL%b\n" "${RED}" "${NC}"
-        exit 2
+        EXITCODE=2
+        if [ "${exitOnFailure}" ] ; then
+                exit "${EXITCODE}"
+        fi
 fi
 
 if [ "${checkDates}" ]; then
@@ -195,7 +208,10 @@ if [ "${checkDates}" ]; then
                 printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
         else
                 printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
-                exit 1
+                EXITCODE=1
+                if [ "${exitOnFailure}" ] ; then
+                        exit "${EXITCODE}"
+                fi
         fi
 
 fi
@@ -208,7 +224,10 @@ if [ "${checkroot}" ] ; then
                 printf "Checking Intermediate's Root... %bPASS%b\n" "${GREEN}" "${NC}"
         else
                 printf "Checking Intermediate's Root... %bFAIL%b\n" "${RED}" "${NC}"
-                exit 3
+                EXITCODE=3
+                if [ "${exitOnFailure}" ] ; then
+                        exit "${EXITCODE}"
+                fi
         fi
 
         if [ "${checkDates}" ]; then
@@ -229,7 +248,10 @@ if [ "${checkroot}" ] ; then
                         printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
                 else
                         printf "End Date... %bFAIL%b (%s)\n" "${RED}" "${NC}" "${certEndDate}"
-                        exit 1
+                        EXITCODE=1
+                        if [ "${exitOnFailure}" ] ; then
+                                exit "${EXITCODE}"
+                        fi
                 fi
 
         fi
@@ -244,20 +266,31 @@ if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
         printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
 else
         printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
-        exit 4
+        EXITCODE=4
+        if [ "${exitOnFailure}" ] ; then
+                exit "${EXITCODE}"
+        fi
 fi
 
 if [ "${combine}" ] ; then
-        printf "\nAll checks passed, writing combined file...\n"
+        if [ "${EXITCODE}" -eq 0 ] ; then
+                printf "\nAll checks passed, writing combined file...\n"
 
-        if [ "${checkroot}" ]; then
-                printf "%s\n%s\n%s" "${cert}" "${intermediate}" "${root}" > "${output}"
+                if [ "${checkroot}" ]; then
+                        printf "%s\n%s\n%s" "${cert}" "${intermediate}" "${root}" > "${output}"
+                else
+                        printf "%s\n%s" "${cert}" "${intermediate}" > "${output}"
+                fi
         else
-                printf "%s\n%s" "${cert}" "${intermediate}" > "${output}"
+                printf "\nOne or more checks failed, not combining file...\n"
         fi
 
 else
-        printf "\nAll checks passed, no output specified. \n"
+        if [ "${EXITCODE}" -eq 0 ] ; then
+                printf "\nAll checks passed, no output specified. \n"
+        else
+                printf "\nOne or more checks failed. \n"
+        fi
 
 fi
 
@@ -268,3 +301,5 @@ fi
 
 
 printf "\nComplete\n"
+
+exit "${EXITCODE}"
