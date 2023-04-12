@@ -11,7 +11,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 DAYSEC='86400'
 
-VERSION='0.2.10'
+VERSION='0.3.0'
 
 MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
 MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
@@ -115,9 +115,9 @@ if [ -n "$bundle" ]; then
         fi
 fi
 
-if [ -n "$bundle" ] && [ -n "$key" ]; then
-        printf "\nUsing bundle and key\n"
-elif [ -n "$cert" ] && [ -n "$intermediate" ] && [ -n "$key" ]; then
+if [ -n "$bundle" ]; then
+        printf "\nUsing bundle\n"
+elif [ -n "$cert" ] && [ -n "$intermediate" ]; then
         printf "\nUsing separate certs\n"
 else
         echo 'Missing required arguments (-c, -i, or -b), and/or -k.' >&2
@@ -130,6 +130,12 @@ fi
 
 if [ -n "$output" ] ; then
         combine=true
+fi
+
+if [ -n "$key" ] ; then
+        checkKey=true
+else
+        printf "\n%bNo key provided, key checks will not be performed%b\n" "${YELLOW}" "${NC}"
 fi
 
 if [ "${checkDates}" ]; then
@@ -257,18 +263,21 @@ if [ "${checkroot}" ] ; then
         fi
 fi
 
-printf "\nChecking Cert matches Key...\r"
 
-certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus)
-keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus)
+if [ "${checkKey}" ] ; then
+        printf "\nChecking Cert matches Key...\r"
 
-if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
-        printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
-else
-        printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
-        EXITCODE=4
-        if [ "${exitOnFailure}" ] ; then
-                exit "${EXITCODE}"
+        certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus)
+        keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus)
+
+        if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
+                printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
+        else
+                printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
+                EXITCODE=4
+                if [ "${exitOnFailure}" ] ; then
+                        exit "${EXITCODE}"
+                fi
         fi
 fi
 
@@ -294,7 +303,7 @@ else
 
 fi
 
-if [ "${printThumbprint}" ] ; then
+if [ "${printThumbprint}" ] && [ "${EXITCODE}" -eq 0 ] ; then
         thumbprint=$(printf "%s" "${cert}" | openssl x509 -outform DER | sha1sum | awk '{ print $1 }')
         printf "\nCertificate Thumbprint: %s\n" "${thumbprint}"
 fi
