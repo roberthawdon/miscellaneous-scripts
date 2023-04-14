@@ -3,7 +3,7 @@
 #+PROPERTY: header-args :tangle cert_check :shebang "#!/usr/bin/env bash"
 #+DESCRIPTION: Documentation for Certificate Check
 #+STARTUP: showeverything
-#+LAST-MODIFIED: [2023-04-14 Fri 05:34]
+#+LAST-MODIFIED: [2023-04-14 Fri 05:37]
 
 * TABLE OF CONTENTS :toc:noexport:
 - [[#introduction][Introduction]]
@@ -27,11 +27,11 @@ Managing TLS certificates can be a bit of a scary job sometimes, as one small mi
 * Usage
 Some examples for running the script:
 
-=cert_check -c client.cert -i intermediate.cert= - This checks a client certifiate, and its intermediate cert to see if they match - this is the most basic usage.
-=cert_check -c client.cert -i intermediate.cert -r root.cert= - Same as above, but also checks a root certificate.
-=cert_check -c client.cert -i intermediate.cert -k private.key= - This checks a client certificate with its intermediate as well as checking the private key matches.
-=cert_check -d -c client.cert -i intermediate.cert -k private.key= - The same as above, but with date checking.
-=cert_check -d -t -b combined.cert -k private.key= - This checks the components of a combined certificate and checks it matches the key as well as outputing the thumbprint and checking the dates.
++ =cert_check -c client.cert -i intermediate.cert= - This checks a client certifiate, and its intermediate cert to see if they match - this is the most basic usage.
++ =cert_check -c client.cert -i intermediate.cert -r root.cert= - Same as above, but also checks a root certificate.
++ =cert_check -c client.cert -i intermediate.cert -k private.key= - This checks a client certificate with its intermediate as well as checking the private key matches.
++ =cert_check -d -c client.cert -i intermediate.cert -k private.key= - The same as above, but with date checking.
++ =cert_check -d -t -b combined.cert -k private.key= - This checks the components of a combined certificate and checks it matches the key as well as outputing the thumbprint and checking the dates.
 
 For further information, check the [[#i-want-options-damnit][I want options damnit!]] section.
 * THE SCRIPT
