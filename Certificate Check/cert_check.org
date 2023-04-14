@@ -1,9 +1,65 @@
-#!/usr/bin/env bash
+#+TITLE: Certificate Check
+#+AUTHOR: Robert Hawdon
+#+PROPERTY: header-args :tangle cert_check :shebang "#!/usr/bin/env bash"
+#+DESCRIPTION: Documentation for Certificate Check
+#+STARTUP: showeverything
+#+LAST-MODIFIED: [2023-04-14 Fri 05:34]
+
+* TABLE OF CONTENTS :toc:noexport:
+- [[#introduction][Introduction]]
+- [[#usage][Usage]]
+- [[#the-script][THE SCRIPT]]
+  - [[#headings][Headings]]
+  - [[#defined-variables][Defined variables]]
+  - [[#getting-started][Getting started]]
+  - [[#i-want-options-damnit][I want options damnit!]]
+  - [[#splitting-bundles-featuring-are-you-a-fruit-flavoured-machine][Splitting bundles (Featuring: Are you a fruit flavoured machine?)]]
+  - [[#final-checks][Final checks]]
+  - [[#lets-go][Let's go!]]
+  - [[#checking-the-key][Checking the key]]
+  - [[#combining-the-certificate][Combining the certificate]]
+  - [[#generating-the-thumbprint][Generating the thumbprint]]
+  - [[#quitting][Quitting]]
+
+* Introduction
+Managing TLS certificates can be a bit of a scary job sometimes, as one small mistake can cause a bunch of headaches and downtime. I've put together this script as a bit of a swiss army knife for managing certificates.
+
+* Usage
+Some examples for running the script:
+
+=cert_check -c client.cert -i intermediate.cert= - This checks a client certifiate, and its intermediate cert to see if they match - this is the most basic usage.
+=cert_check -c client.cert -i intermediate.cert -r root.cert= - Same as above, but also checks a root certificate.
+=cert_check -c client.cert -i intermediate.cert -k private.key= - This checks a client certificate with its intermediate as well as checking the private key matches.
+=cert_check -d -c client.cert -i intermediate.cert -k private.key= - The same as above, but with date checking.
+=cert_check -d -t -b combined.cert -k private.key= - This checks the components of a combined certificate and checks it matches the key as well as outputing the thumbprint and checking the dates.
+
+For further information, check the [[#i-want-options-damnit][I want options damnit!]] section.
+* THE SCRIPT
+** Headings
+Firstly, we have a couple of comments, and a commented =set -x= for debugging purposes. (The definition to run the script in bash is set in this org-mode document's header)
+
+#+begin_src bash
+
 # Check and Combine Cert - Part of the Hawdon Script family
 # Oh no, it's yet another Hawdon Script!
 
 # set -x
 
+#+end_src
+
+** Defined variables
+Here we define the variables that shouldn't need changing, such as:
+
++ Colour settings, here we've defined =RED=, =GREEN=, =YELLOW=, and =NC= (no colour). These are used to make the output prettier on the console.
++ We have also defined =DAYSEC= as a static variable to allow for easy conversion from seconds to days. (We aren't too bothered about the accuracy of leap seconds)
++ =VERSION= is simply the version of this script
++ =MAXAGEDAYS= is the maximum allowed age of a client certificate (sorry, no more 3 year certificates)
++ =MAXAGESEC= is the same as above but in seconds - this is automatically generated using =awk=
++ =ENDWARN= is set to 30 seconds and will show a warning if the cert being checked is about to expire in the next 30 days.
++ =ENDWARNSEC= is the same but in seconds - again, automatically generated using =awk=
++ =EXITCODE= we set this to 0 and hope nothing changes it!
+
+#+begin_src bash
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -18,7 +74,14 @@ ENDWARN='30' # Flag warning if cert will expire within 30 days
 ENDWARNSEC=$(awk "BEGIN{print ${ENDWARN}*${DAYSEC}}")
 
 EXITCODE=0
+#+end_src
 
+** Getting started
+Here we're going to do a few things, firstly we're going to print the version of this script to stdout.
+
+Next, we're going to check if =openssl= is available. If not, we instantly abort.
+
+#+begin_src bash
 printf "Certificate chain checker V%s\n\n" "${VERSION}"
 
 printf "Checking for OpenSSL...\r"
@@ -30,6 +93,23 @@ else
         exit 255
 fi
 
+#+end_src
+
+** I want options damnit!
+
+Here we define the different arguments that are passed to the script:
+
++ =-b= - Bundle: Pass a bundle of certificates to the script, in the form of client, intermediate, root
++ =-c= - Certificate: Pass just a client certificate
++ =-d= - Dates: Check the dates of the certificates
++ =-i= - Intermediate: Pass just an intermediate certificate
++ =-k= - Key: Pass the key for the corresponding certificate
++ =-r= - Root: Pass just the root certificate
++ =-o= - Output: Gets this script to combine seperate certificates into a bundle
++ =-t= - Thumbprint: Generates the thumbprint of a certificate (useful for importing PFXs to Windows)
++ =-x= - Exits on failure
+
+#+begin_src bash
 while getopts ":b:c:di:k:r:to:x" options; do
         case "${options}" in
                 b)
@@ -67,6 +147,16 @@ done
 
 shift "$(( OPTIND - 1))"
 
+#+end_src
+
+** Splitting bundles (Featuring: Are you a fruit flavoured machine?)
+If you opt to check dates and/or import a bundle of certificates, you'll need to be using the GNU versions of the =sed= and =date=, this can be installed using Homebrew. We will check for these now, and if they're not found, we'll abort here.
+
+After that, if you're opting to use a bundle, we'll split that out here.
+
+*** Are you a fruit flavoured machine?
+
+#+begin_src bash
 if [ "${checkDates}" ]; then
         if [[ ${OSTYPE} == "darwin"* ]]; then
                 printf "MacOS detected, checking for gdate...\r"
@@ -97,6 +187,12 @@ if [ -n "$bundle" ]; then
                 SED=$(command -v sed)
         fi
 
+#+end_src
+
+*** Splitting the bundle
+Now we have that Apple quirk sorted out, now we can split the bundle.
+
+#+begin_src bash
         c=0
         OLDIFS=$IFS; IFS=';' blocks=$("${SED}" -n '/-----BEGIN /,/-----END/ {/-----BEGIN / s/^/\;/; p}'  "${bundle}");
         for block in ${blocks#;}; do
@@ -115,6 +211,13 @@ if [ -n "$bundle" ]; then
         fi
 fi
 
+#+end_src
+
+** Final checks
+
+Now we just need to check if we have everything required to begin checking certs. When using seperate certificate, we need to at least have the client and intermediate defined, otherwise we use a bundle. We can take this opportunity check if we're going to be checking the root certificate, combining the certificates, and/or checking the key.
+
+#+begin_src bash
 if [ -n "$bundle" ]; then
         printf "\nUsing bundle\n"
 elif [ -n "$cert" ] && [ -n "$intermediate" ]; then
@@ -138,6 +241,14 @@ else
         printf "\n%bNo key provided, key checks will not be performed%b\n" "${YELLOW}" "${NC}"
 fi
 
+#+end_src
+
+** Let's go!
+*** Client Certificate
+**** Check dates
+First thing's first, we're going to make sure the client's certificate is ready to be used, hasn't expired, and isn't valid for longer than allowed.
+
+#+begin_src bash
 if [ "${checkDates}" ]; then
         printf "\nChecking Cert's dates...\n"
         certStartDate=$(printf "%s" "${cert}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
@@ -181,6 +292,13 @@ if [ "${checkDates}" ]; then
 
 fi
 
+#+end_src
+
+*** Check Intermediate
+**** Check intermediate certificate belongs to the client certificate
+Here we are going to check the intermediate certificate matches the client certficiate's issuer.
+
+#+begin_src bash
 printf "\nChecking Cert's Intermediate...\r"
 certIssuerHash=$(printf "%s" "${cert}" | openssl x509 -issuer_hash -noout)
 intermediateHash=$(printf "%s" "${intermediate}" | openssl x509 -hash -noout)
@@ -195,6 +313,12 @@ else
         fi
 fi
 
+#+end_src
+
+**** Check intermediate's dates
+Oh yes, even if it isn't your cert, it can still expire! Let's check this now:
+
+#+begin_src bash
 if [ "${checkDates}" ]; then
         printf "Checking Intermediate's dates...\n"
         certStartDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
@@ -221,6 +345,15 @@ if [ "${checkDates}" ]; then
 
 fi
 
+#+end_src
+
+*** Root certificate
+The inclusion of the root certificate is optional, but it's worth doing if you have it.
+
+**** Checking the root certificate matches the intermediate certificate
+Again, we'll check the root certificate provided was the one that issued the intermediate
+
+#+begin_src bash
 if [ "${checkroot}" ] ; then
         printf "\nChecking Intermediate's Root...\r"
         intermediateIssuerHash=$(printf "%s" "${intermediate}" | openssl x509 -issuer_hash -noout)
@@ -235,6 +368,12 @@ if [ "${checkroot}" ] ; then
                 fi
         fi
 
+#+end_src
+
+**** Checking the root cert's dates
+We, again, want to check this as we can never be too sure!
+
+#+begin_src bash
         if [ "${checkDates}" ]; then
                 printf "Checking Intermediate's Root's dates...\n"
                 certStartDate=$(printf "%s" "${root}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
@@ -262,6 +401,13 @@ if [ "${checkroot}" ] ; then
         fi
 fi
 
+
+#+end_src
+
+** Checking the key
+Next thing we want to do is if we have the key for the certificate, we should check this actually matches the client certificate:
+
+#+begin_src bash
 if [ "${checkKey}" ] ; then
         printf "\nChecking Cert matches Key...\r"
 
@@ -279,6 +425,12 @@ if [ "${checkKey}" ] ; then
         fi
 fi
 
+#+end_src
+
+** Combining the certificate
+If requested, we can now combine the certificate, otherwise, print if the checks passed or not
+
+#+begin_src bash
 if [ "${combine}" ] ; then
         if [ "${EXITCODE}" -eq 0 ] ; then
                 printf "\nAll checks passed, writing combined file...\n"
@@ -301,11 +453,25 @@ else
 
 fi
 
+#+end_src
+
+** Generating the thumbprint
+If we want the thumbprint, we can generate it as long as the checks have passed.
+
+#+begin_src bash
 if [ "${printThumbprint}" ] && [ "${EXITCODE}" -eq 0 ] ; then
         thumbprint=$(printf "%s" "${cert}" | openssl x509 -outform DER | sha1sum | awk '{ print $1 }')
         printf "\nCertificate Thumbprint: %s\n" "${thumbprint}"
 fi
 
+
+#+end_src
+
+** Quitting
+Finally, we can quit with the exit code
+
+#+begin_src bash
 printf "\nComplete\n"
 
 exit "${EXITCODE}"
+#+end_src
