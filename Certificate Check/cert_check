@@ -2,6 +2,26 @@
 # Check and Combine Cert - Part of the Hawdon Script family
 # Oh no, it's yet another Hawdon Script!
 
+#####################################################
+#     _ _____ _____ ___ _  _ _____ ___ ___  _  _ _  #
+#    /_\_   _|_   _| __| \| |_   _|_ _/ _ \| \| | | #
+#   / _ \| |   | | | _|| .` | | |  | | (_) | .` |_| #
+#  /_/ \_\_|   |_| |___|_|\_| |_| |___\___/|_|\_(_) #
+#                                                   #
+#####################################################
+#                                                   #
+# Do not make changes to this file directly. This   #
+# file is generated from the code blocks in the     #
+# cert_check.org file and should be tangled using   #
+# org-bable-tangle in emacs.                        #
+#                                                   #
+# If you're unfamilier with the emacs editor,       #
+# ensure any changes you do make are also reflected #
+# in the cert_check.org file to ensure your changes #
+# aren't lost in the future.                        #
+#                                                   #
+#####################################################
+
 # set -x
 
 RED='\033[0;31m'
@@ -10,7 +30,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 DAYSEC='86400'
 
-VERSION='0.3.1'
+VERSION='0.3.2'
 
 MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
 MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
@@ -100,7 +120,6 @@ if [ -n "$bundle" ]; then
         c=0
         OLDIFS=$IFS; IFS=';' blocks=$("${SED}" -n '/-----BEGIN /,/-----END/ {/-----BEGIN / s/^/\;/; p}'  "${bundle}");
         for block in ${blocks#;}; do
-            # echo $block | openssl x509 -noout -subject -in -
             bundleCert[c++]=$(printf "%s" "${block}")
         done; IFS=$OLDIFS
 
@@ -140,8 +159,8 @@ fi
 
 if [ "${checkDates}" ]; then
         printf "\nChecking Cert's dates...\n"
-        certStartDate=$(printf "%s" "${cert}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
-        certEndDate=$(printf "%s" "${cert}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+        certStartDate=$(printf "%s" "${cert}" | openssl x509 -noout -startdate 2>/dev/null | awk -F '=' '{print $NF}')
+        certEndDate=$(printf "%s" "${cert}" | openssl x509 -noout -enddate 2>/dev/null | awk -F '=' '{print $NF}')
 
         certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
@@ -182,8 +201,8 @@ if [ "${checkDates}" ]; then
 fi
 
 printf "\nChecking Cert's Intermediate...\r"
-certIssuerHash=$(printf "%s" "${cert}" | openssl x509 -issuer_hash -noout)
-intermediateHash=$(printf "%s" "${intermediate}" | openssl x509 -hash -noout)
+certIssuerHash=$(printf "%s" "${cert}" | openssl x509 -issuer_hash -noout 2>/dev/null)
+intermediateHash=$(printf "%s" "${intermediate}" | openssl x509 -hash -noout 2>/dev/null)
 
 if [ "${certIssuerHash}" == "${intermediateHash}" ] ; then
         printf "Checking Cert's Intermediate... %bPASS%b\n" "${GREEN}" "${NC}"
@@ -197,8 +216,8 @@ fi
 
 if [ "${checkDates}" ]; then
         printf "Checking Intermediate's dates...\n"
-        certStartDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
-        certEndDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+        certStartDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -startdate 2>/dev/null | awk -F '=' '{print $NF}')
+        certEndDate=$(printf "%s" "${intermediate}" | openssl x509 -noout -enddate 2>/dev/null | awk -F '=' '{print $NF}')
 
         certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
         certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
@@ -223,8 +242,8 @@ fi
 
 if [ "${checkroot}" ] ; then
         printf "\nChecking Intermediate's Root...\r"
-        intermediateIssuerHash=$(printf "%s" "${intermediate}" | openssl x509 -issuer_hash -noout)
-        rootHash=$(printf "%s" "${root}" | openssl x509 -hash -noout)
+        intermediateIssuerHash=$(printf "%s" "${intermediate}" | openssl x509 -issuer_hash -noout 2>/dev/null)
+        rootHash=$(printf "%s" "${root}" | openssl x509 -hash -noout 2>/dev/null)
         if [ "${intermediateIssuerHash}" == "${rootHash}" ] ; then
                 printf "Checking Intermediate's Root... %bPASS%b\n" "${GREEN}" "${NC}"
         else
@@ -237,8 +256,8 @@ if [ "${checkroot}" ] ; then
 
         if [ "${checkDates}" ]; then
                 printf "Checking Intermediate's Root's dates...\n"
-                certStartDate=$(printf "%s" "${root}" | openssl x509 -noout -startdate | awk -F '=' '{print $NF}')
-                certEndDate=$(printf "%s" "${root}" | openssl x509 -noout -enddate | awk -F '=' '{print $NF}')
+                certStartDate=$(printf "%s" "${root}" | openssl x509 -noout -startdate 2>/dev/null | awk -F '=' '{print $NF}')
+                certEndDate=$(printf "%s" "${root}" | openssl x509 -noout -enddate 2>/dev/null | awk -F '=' '{print $NF}')
 
                 certStartEpoch=$("${DATE}" --date="${certStartDate}" -u +"%s")
                 certEndEpoch=$("${DATE}" --date="${certEndDate}" -u +"%s")
@@ -265,8 +284,8 @@ fi
 if [ "${checkKey}" ] ; then
         printf "\nChecking Cert matches Key...\r"
 
-        certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus)
-        keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus)
+        certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus 2>/dev/null)
+        keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus 2>/dev/null)
 
         if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
                 printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
@@ -302,7 +321,7 @@ else
 fi
 
 if [ "${printThumbprint}" ] && [ "${EXITCODE}" -eq 0 ] ; then
-        thumbprint=$(printf "%s" "${cert}" | openssl x509 -outform DER | sha1sum | awk '{ print $1 }')
+        thumbprint=$(printf "%s" "${cert}" | openssl x509 -outform DER 2>/dev/null | sha1sum | awk '{ print $1 }')
         printf "\nCertificate Thumbprint: %s\n" "${thumbprint}"
 fi
 
