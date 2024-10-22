@@ -3,7 +3,7 @@
 #+PROPERTY: header-args :tangle cert_check :shebang "#!/usr/bin/env bash"
 #+DESCRIPTION: Documentation for Certificate Check
 #+STARTUP: showeverything
-#+LAST-MODIFIED: [2023-12-29 Fri 05:26]
+#+LAST-MODIFIED: [2024-10-22 Tue 01:26]
 
 * TABLE OF CONTENTS :toc:noexport:
 - [[#introduction][Introduction]]
@@ -87,7 +87,7 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Colour
 DAYSEC='86400'
 
-VERSION='0.3.2'
+VERSION='0.4.0'
 
 MAXAGEDAYS='398' # 398 Days maximum length for a publically issued server cert.
 MAXAGESEC=$(awk "BEGIN{print ${MAXAGEDAYS}*${DAYSEC}}")
@@ -288,7 +288,7 @@ if [ "${checkDates}" ]; then
                 printf "Start Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certStartDate}"
         fi
 
-        if [ "${certEndWarn}" -gt "${certEndEpoch}" ] ; then
+        if [ "${certEndWarn}" -gt "${certEndEpoch}" ] && [ "${certEndWarn}" -lt "${currentEpoch}" ]; then
                 printf "End Date... %bWARN%b (%s)\n" "${YELLOW}" "${NC}" "${certEndDate}"
         elif [ "${certEndEpoch}" -gt "${currentEpoch}" ] ; then
                 printf "End Date... %bPASS%b (%s)\n" "${GREEN}" "${NC}" "${certEndDate}"
@@ -429,18 +429,42 @@ Next thing we want to do is if we have the key for the certificate, we should ch
 
 #+begin_src bash
 if [ "${checkKey}" ] ; then
-        printf "\nChecking Cert matches Key...\r"
 
-        certModulusHash=$(printf "%s" "${cert}" | openssl x509 -noout -modulus 2>/dev/null)
-        keyModulusHash=$(printf "%s" "${key}" | openssl rsa -noout -modulus 2>/dev/null)
+        printf "\nDetecting Key Type...\r"
 
-        if [ "${certModulusHash}" == "${keyModulusHash}" ] ; then
-                printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
+        if printf '%s' "${key}" | openssl rsa -noout > /dev/null 2>&1; then
+                printf "Detecting Key Type... %bRSA%b\n" "${GREEN}" "${NC}"
+                OPENSSL_MODE='rsa'
+        elif printf '%s' "${key}" | openssl ec -noout > /dev/null 2>&1; then
+                printf "Detecting Key Type... %bEC%b\n" "${GREEN}" "${NC}"
+                OPENSSL_MODE='ec'
+        elif printf '%s' "${key}" | openssl dsa -noout > /dev/null 2>&1; then
+                printf "Detecting Key Type... %bDSA%b\n" "${GREEN}" "${NC}"
+                OPENSSL_MODE='dsa'
         else
-                printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
+                printf "Detecting Key Type... %bFAIL%b\n" "${RED}" "${NC}"
                 EXITCODE=4
                 if [ "${exitOnFailure}" ] ; then
                         exit "${EXITCODE}"
+                fi
+        fi
+
+        if [ -z ${OPENSSL_MODE+x} ]; then
+                printf "\nSkipping Key check due to error\n"
+        else
+                printf "\nChecking Cert matches Key...\r"
+
+                certPublicKey=$(printf "%s" "${cert}" | openssl x509 -pubkey -noout 2>/dev/null)
+                keyPublicKey=$(printf "%s" "${key}" | openssl ${OPENSSL_MODE} -pubout 2>/dev/null)
+
+                if [ "${certPublicKey}" == "${keyPublicKey}" ] ; then
+                        printf "Checking Cert matches Key... %bPASS%b\n" "${GREEN}" "${NC}"
+                else
+                        printf "Checking Cert matches Key... %bFAIL%b\n" "${RED}" "${NC}"
+                        EXITCODE=4
+                        if [ "${exitOnFailure}" ] ; then
+                                exit "${EXITCODE}"
+                        fi
                 fi
         fi
 fi
